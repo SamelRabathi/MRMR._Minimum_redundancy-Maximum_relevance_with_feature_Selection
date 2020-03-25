@@ -1,0 +1,239 @@
+class MRMR:
+
+    def __init__(self,
+                 feature_set,
+                 classifikation,
+                 feature_set_lenght = 1,
+                 method = "pearson"
+                 ):
+                 self.SetX = feature_set
+                 self.SetY = classifikation
+                 self.SetX_lenght = feature_set_lenght
+                 self.method = method
+#===============================================================================
+    "feature_set" # Bei dieser Menge wirddavon ausgegangen, dass es mit Features
+                  # gefüllt sein wird
+                  # Menge: aus m Feature(Spalten) mit n Vorkommnissen(Zeilen)
+
+    "classifikation" # Hierbei handeln es sich um Endpunkte mit denen nur die
+                     # Relevanz bestimmt wird
+                     # Menge:
+                     # Eine Reihe(Spalte) Endpunkten aus n mal Auftreten(Zeilen)
+
+    "feature_set_lenght" # Falls nur Elementen der Matrix als Array übergeben
+                         # wird, so ist eine Kantenlänge essentiell, wobei ich
+                         # hier von der länge der Features(m) ausgehe
+
+    "method" # Die Art der Korrelationenbestimmung
+#===============================================================================
+
+
+    def calculation(self):
+
+        Relevance = max_rel_calc(np.absolute(self.SetX),
+                                 np.absolute(self.SetY),
+                                 self.SetX_lenght,
+                                 self.method
+                                )
+
+        Redundancy =  min_red_calc(np.absolute(self.SetX),
+                                   np.absolute(self.SetX_lenght),
+                                   self.method
+                                   )
+
+        features = pd.DataFrame( columns = ['Score'],
+                                           ['Feature-Name'],
+                                           ['Position'])
+
+        l = 0
+        while (l < len(Relevance) and
+               Relevance[l][0][0] - Redundancy[Relevance[0][0][l]] >= 0
+               ):
+            feature[l][0][0] = (Relevance[l][0][0] -
+                               Redundancy[Relevance[0][0][l]])
+            feature[0][l][0] = Relevance[0][l][0]
+            feature[0][0][l] = Relevance[0][0][l]
+            l = l + 1
+        return feature
+#===============================================================================
+    "feature" # Gibt Score, Feature-Name und die Position aus der
+              # ursprünglichen Menge von denen bei dem der Score positiv
+              # geblieben ist
+#===============================================================================
+
+
+    def max_rel_calc(self,
+                     subset_test,
+                     classification,
+                     f_n,
+                     method
+                     ):  # Maximum Relevance Calculation
+#===============================================================================
+    "subset_test" # Zu analysierende Feature_set wurde in Gesprächen öffters
+                  # auch Menge X beschireben, weshalb beim Aufruf dieser
+                  # Funktion ich den Namen SetX genommen habe
+
+    "classification" # Hierbei handelt es sich um Endpunkte mit Korrelationen
+                     # verrechnet werden, um folglich einerseits eine
+                     # Vergleichbarkeit zu haben, die die Wichtigkeit der
+                     # Features aussagen soll
+
+    "f_n" # Hat nur die Anzahl an Features die pro Veruchdurchführung
+          # aufgenommen wurde
+
+    "method" # Auf welche Methode die Berrechnung durchgeführt werden soll
+#===============================================================================
+
+"1. Abschnitt:"
+        relevance_of_feature = pd.DataFrame( columns = ['Koeffizienten'],
+                                                       ['Feature-Name'],
+                                                       ['alte_Position'])
+        marix_of_subset_test = np.array( subset_test )
+        marix_of_subset_test  = marix_of_subset_test.reshape(
+                                    int( len(subset_test) / f_n ),
+                                    f_n
+                                    )
+        """Die Daten Werden wie eine Matrix sortiert, und zwar nach dem Muster,
+           dass wir z.B. n = 8/4 Patienten mit jeweils 4 Features haben"""
+"1. Abschnitt"
+# Der 1. Abschnitt ist für das Errichten von notwendigen Datensätzen
+        el = 0 # erster Schleifen-läufer
+        while (el < len(marix_of_subset_test)):
+            # Die while-Schleife ist für die Berrechnung jeder Koorelation aus
+            # der Menge von Feature zu den Endpunkten
+            input_correl = MRMR.correl(marix_of_subset_test[el],
+                                       self.classification,
+                                       self.method
+                                       ) # Bestimmung einer Korrelationen
+            input_feature = marix_of_subset_test[el]
+            input_poition = el
+            zl = 0 # zweiter Schleifen-läufer
+            while( (zl < el) and
+                   (input_correl < relevance_of_feature[zl])
+                   # Die Korrelation muss kleiner als die an der Position sein
+                 ):
+                zl = zl + 1
+            """ Die zweite Schleife hier ist zur Erörterung der Position zur
+                Einordnung der errechneten Scores bzw. Korrelationen in eine
+                Menge, die später dem "return" gegeben wird."""
+
+            while( (zl < el) ):
+                tmp_c = relevance_of_feature[zl][0][0] # correl
+                tmp_n = relevance_of_feature[0][zl][0] # name
+                tmp_p = relevance_of_feature[0][0][zl] # position
+                    # Den aktuellen Wert ins Zwischespeicher
+                relevance_of_feature[zl][0][0] = ({'Koeffizienten' :
+                                                                input_correl})
+                relevance_of_feature[0][zl][0] = ({'Feature-Name' :
+                                                                input_feature})
+                relevance_of_feature[0][0][zl] = ({'alte_Position' :
+                                                                input_poition})
+                    # Einfügen der Korrel
+                input_correl = tmp_c
+                input_feature = tmp_n
+                input_poition = tmp_p
+                    # Dass zu verschiebene Elemenent für den nächsten Durchlauf
+                    # annehmen
+            """ Diese while-Schleife soll das Einfügen der neuen Korrelation
+                an die in der vorherigen while-Schleife bestimmten Position
+                also "zl" durchführen und dabei die darauffolgenden Features
+                wegen dem Einfügen um eine Position nach hinten
+                verschieben"""
+
+                zl = zl +1
+
+            el = el + 1
+
+        """Hierbei sind Klassifikationen mit denen die Features jeweils in
+           Korrelation gebracht werden, um herrauszufinden wie hoch dessen
+           Relevanz im Bezug auf unser Ereignis ist"""
+
+        return relevance_of_feature_subset
+#===============================================================================
+    "relevance_of_feature_subset" # Die Rückgabe ist ein DataFrame, welches
+                                  # Features nach Größe der erhaltenen
+                                  # Korrelation die Reihenfolge sortiert, und
+                                  # zwar ist an erster Stelle das Feature mit
+                                  # der größten Korrelation und darauf abfolgend
+                                  # Dabei zu beachten ist, dass erste Spalte die
+                                  # den Korrel wiedergibt und der zweite den
+                                  # Feature-Namen
+#===============================================================================
+
+
+    def mini_red_calc(self,
+                      subset_test,
+                      f_n,
+                      method
+                      ): # Minimum Redundance Calculation
+#===============================================================================
+    "subset_test" # Das Feature_set wird auf Redundanz geprüft, weshalb auch
+                  # zweite Menge benötigt wird
+
+    "f_n" # Hat nur die Anzahl an Features die pro Veruchdurchführung
+          # aufgenommen wurde
+
+    "method" # Auf welche Methode die Berrechnung durchgeführt werden soll
+#===============================================================================
+        create_matrix = np.empty([f_n, f_n])
+        # Erstellung ist notwendig, obwohl entwederr das obere, rechte oder
+        # untere linke Dreieck der Matrix benötigt wird
+        el = 0
+        while (el < f_n):
+            zl = el # Hat die Absicht, dass das untere linke Dreieck nicht
+                    # gefüllt werden  muss, da esnicht benötigt wird
+            while (zl < f_n):
+                create_matrix[el][zl] = correl(subset_test[el],
+                                               subset_test[zl]
+                                              )
+                zl = zl +1
+                """ Es soll hier der obere, rechte Abschnitt befüllt werden"""
+            el = el + 1
+
+        return create_matrix
+#===============================================================================
+    "create_matrix" # Das create_matrix wird soll die Redundanz angeben,
+                    # aufgrund dessen, dass wir mit einer Korrelation arbeiten,
+                    # hat entweder der ober oder untere Abschnitt von der
+                    # Diagonale aus keinen Nutzen, weil es im anderen genau so
+                    # enthalten  ein  muss
+#===============================================================================
+
+
+    def correl(setX, setY, method):
+#===============================================================================
+        "setX" # Die Bezeichnung dieser Mengen gilt nur zur Orientierung
+               # in der in dieser def stattfindenden Berechnungen
+
+        "setY" # Hat die selbe Funktion wie setX für die zweite, mit zu
+               # vergleichende Menge
+
+        "method" # Der erhalt der Methode ist essentiell, da sonst keine
+                 # Berechnung ausgeführt werden würde
+#===============================================================================
+
+    correlation = 0
+
+    if (method == "pearson"):
+
+        import scipy.stats as scipy
+        correlation = scipy.pearsonr(setX, setY)
+        """Correlationsbestimmung der zwei erhaltenen Mengen, hierbei muss
+        die Länge der Menge berücksichtigt werden, da Ungleichheiten der
+        Länge zweier Mengen nicht über Korrelationenbestimmung berechnet
+        werden kann"""
+
+    elif (method == "spearman"):
+        ...  """Identischer Aufbau, nur mit dem entsprechenden Modul zur
+                Berechnung, im zweifelsfall eigene Implementierung"""
+    ... # Ziel: möglich wenige Methoden zur Korrelationsbildung einzubinden, die
+              # aber zusammen so gut wie möglich jegliche Korrelation und dies
+              # auch effizient abbilden können
+
+    return correlation
+#===============================================================================
+    "correlation" # Die Rückgabe ist die Berechnung der Korrelation von den zwei
+                  # eingeben Mengen, wobei die Mengen z.B. auf der einen Seite
+                  # die Endpunkte und auf der anderen Seite sind die
+                  # repräsentavien Werte des einen zu analysierenden Features
+#===============================================================================

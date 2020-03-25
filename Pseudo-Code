@@ -1,0 +1,193 @@
+Class correlation():
+    import scipy.stats
+
+    def __init__(self, X, Y, method = "Pearson"):
+        self.setX = X  # erste Menge
+        self.setY = Y  # zweite Menge
+
+        self.method = method
+        """Es wird die Methode gebraucht, um später dementsprechent die
+        Korrelation zu bestimmen"""
+
+
+    def correl(self):
+        correlation = 0
+
+        if (self.method == "Pearson" or self.method == "pearson"):
+
+            import scipy.stats as scipy
+            correlation = scipy.pearsonr(self.setX, self.setY)
+
+        elif (self.method == "Spearman" or self.method == "spearman"):
+
+            import scipy.stats as scipy
+            correlation = scipy.spearmanr(self.setX, self.setY)
+
+        elif (self.method == "Kendall’s Tau" or
+              self.method == "Kendall’s tau" or
+              self.method == "kendall’s Tau" or
+              self.method == "kendall’s tau"
+              ):
+
+            import scipy.stats as scipy
+            correlation = scipy.kendalltau(self.setX, self.setY)
+
+        elif(self.method == "Concordance Index" or
+             self.method == "Concordance index" or
+             self.method == "concordance Index" or
+             self.method == "concordance index"
+             ):
+
+            # Code kommt noch
+            print("\nDie Berechnung über den Concordance Index ist noch " +
+                  "nicht fertig, gilt noch zu bearbeiten\n")
+            correlation = "Noch keine Rechnung"
+
+        elif(self.method == "Carmer's V" or
+             self.method == "Carmer's v" or
+             self.method == "carmer's V" or
+             self.method == "carmer's v"
+             ):
+
+            # Code kommt noch
+            print("\nDie Berechnung über den Carmer's V ist noch nicht " +
+                  "fertig, gilt noch zu bearbeiten\n")
+            correlation = "Noch keine Rechnung"
+
+        return correlation
+
+
+Class Relevance() :
+        def __init__(self, new_classification,
+                     Feature_set,
+                     Feature_number = 1,
+                     method = "Pearson"):
+        self.classification = new_classification
+        self.subset_test = Feature_set
+        self.method = method
+        self.f_n = Feature_number
+
+
+    def max_rel_calc(self):  # Maximum Relevance Calculation
+        # "1"
+        relevance_of_feature_subset = pd.DataFrame(
+            columns = ['Koeffizienten'])
+        """Dieses DataFrame wird deshalb erstellt, damit dieses immer mehr
+           mit Werten, die für die Präsenttation der Relevance der jeweiligen
+           Feature vorgesehen ist, gefüllt wird"""
+
+        marix_of_subset_test = np.array( self.subset_test )
+        """Annahme der Daten"""
+
+        marix_of_subset_test  = marix_of_subset_test.reshape(
+            ( int( len( self.subset_test ) / self.f_n ), self.f_n)
+            )
+        """Die Daten Werden wie eine Matrix sortiert, und zwar nach dem Muster,
+           dass wir z.B. n=2 Patienten mit jeweils 4 Features haben"""
+        # "1"
+            # Abschnitt 1 ist für die Initialisierung und befüllen von denen
+
+        # "2"
+        print("""\nDer Inhalt beim Befüllen von relevance_of_feature_subset: \n
+              {:}""" .format(marix_of_subset_test))
+        print("\nDie Länge des gefüllten relevance_of_feature_subset: {:}"
+              .format(len(marix_of_subset_test)))
+        print (colored("\n\nBeginn der while Schleife\n\n", "green"))
+            # Soll den START der Schleife markieren
+
+        # "2"
+            # Abschnitt 2 soll zur Kontrolle Abschnitt 1 ausgeben wird nicht
+            # mehr nöttig sein
+
+        l = 0
+        while (l < len(marix_of_subset_test)):
+            print( colored("Lauf {:}".format(l+1), "cyan") )
+                # Soll zu Orientierung dienen
+
+            input_for_test = correlattion(self.classification,
+                                          marix_of_subset_test[l],
+                                          self.method
+                                          )# Bestimmen der Korrelationen
+
+            relevance_of_feature_subset = relevance_of_feature_subset.append(
+                {'Koeffizienten' : input_for_test.correl()[0]},
+                ignore_index=True)
+                # Fügen der Korrelation in der Menge an solchen Werten vom Set
+
+            # "3"
+            print("{:}\n\n".format(relevance_of_feature_subset))
+            # "3"
+                # "Dientt nur zur Ausgabe der Zwischenschrittte"
+            l = l + 1
+
+        print( colored("Ende der while Schleife\n\n", "red") )
+            # Soll das ENDE der Schleife markieren
+
+        """Hierbei sind Klassifikationen mit denen die Features jeweils in
+        Korrelation gebracht werden, um herrauszufinden wie hoch dessen
+        Relevanz im Bezug auf unser Ereignis ist"""
+
+        # Bis hier funktioniert der Code:
+        # Zwar funktioniert dei Klasse mit dem Sortierungsalgorithmus, aber die
+        # Rückgabe ist derzeitig noch ein Pionter auf eine Speicheradresse und
+        # nicht der Inhalt muss noch behoben werden
+
+        # Für die Sortierung von relevance_of_feature_subset
+        sorted_r_o_f_s = pd.DataFrame(columns = ['Koeffizienten', 'Feature'])
+        sorted_r_o_f_s = own_timsort(relevance_of_feature_subset, Feature_set)
+        # Das Ergebnis soll erstmal ein ( 2 X len(Feature_set) ) Matrix sein
+        # wobei einer der Spalten die Features hat und die andere Spalte die
+        # dazu berechnete Relevanz in sortierter Reihenfolge hat
+
+        print("{:}\n\n".format(sorted_r_o_f_s))
+
+        return sorted_r_o_f_s
+
+"""
+class own_timsort():
+    # based off of this code
+    # https://gist.github.com/nandajavarma/a3a6b62f34e74ec4c31674934327bbd3
+    # Brandon Skerritt
+    # https://skerritt.tech
+
+    def __init__(self, array_Koefizenten, array_Feature)
+    ...
+    ...
+# =============================================================================
+https://gist.github.com/brandonskerritt/f6ccc000ab6527769999fd0a9ebf59de
+# =============================================================================
+"""  # Aus der Referenz habe ich einen Sortier-Algorythmus mit den Namen Timsort
+     # herausgesucht, um beim Wechsel der Scores die Feature ebenfalls zu
+     # wechseln
+
+    AB HIER MUSS NOCH IMPLEMENTIERT WERDEN -> PSEUDO-CODE
+Class Redundance():
+    redundanz_set = ""
+    s = 0
+    z = 0
+    while z < Feature_number:
+        while s < Feature_number:
+            redundanz_set = redundanz_set.append(correlattion(Feature_set[s],
+                                                              Feature_set[z],
+                                                              self.method)
+                                                              )
+            s = s + 1
+        z = z + 1
+    red_mat = np.reshape( redundanz_set, (Feature_number, Feature_number) )
+    # red-mat steht für redundanz_matrix
+
+Class Filter():
+    # bessere Bezeichnung kommt noch, soll die Subtraktion sein und
+    # Bildung des endgülttigen Scores sein
+    clear Feature_set
+    Feature_score = Feature_score + append( sorted_Relevance(0) )
+    Feature_set = Feature_set + append( sorted_Feature_Set(0) )
+    l = 1
+    while l < Feature_number:
+        if ( 0 < (Relevance(l) - Redundance(l)) ):
+              # muss noch in der Redundance etwas genauer angeziehlt werdens
+            Feature_score = Feature_score + append(Relevance(l) - Redundance(l))
+            Feature_set = Feature_set + append( sorted_Feature_Set )
+        else:
+            break;
+        l = l + 1
