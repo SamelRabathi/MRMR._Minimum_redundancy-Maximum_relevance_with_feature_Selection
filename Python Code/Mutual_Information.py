@@ -26,13 +26,11 @@ class mutual_information:
             
             import scipy.stats as scipy
             correlation = scipy.pearsonr(self.setX, self.setY)
-            print(correlation)
             
         elif (self.method == "Spearman" or self.method == "spearman"):
             
             import scipy.stats as scipy
             correlation = scipy.spearmanr(self.setX, self.setY)
-            print(correlation)
             
         elif (self.method == "Kendall’s Tau" or
               self.method == "Kendall’s tau" or
@@ -42,7 +40,6 @@ class mutual_information:
             
             import scipy.stats as scipy
             correlation = scipy.kendalltau(self.setX, self.setY)
-            print(correlation)
             
         elif(self.method == "Concordance Index" or
              self.method == "Concordance index" or
@@ -67,4 +64,3 @@ class mutual_information:
             correlation = "Fehler"
             
         return correlation
-    
