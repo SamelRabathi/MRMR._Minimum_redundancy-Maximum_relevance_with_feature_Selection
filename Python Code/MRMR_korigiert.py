@@ -9,6 +9,9 @@ Created on Wed Mar 25 17:15:32 2020
 class MRMR:
 
     import MRMR_korigiert as MRMR
+    
+    considered_features = []
+    
     def __init__(self,
                  feature_set,
                  classifikation,
@@ -111,6 +114,7 @@ class MRMR:
             feat_id.append(l+1)
             l = l + 1
 
+
         print( colored("\nRelevanz: ", "magenta") )
         print(Relevance)
         print( colored("\nRedundanz: ", "magenta") )
@@ -207,31 +211,33 @@ class MRMR:
             4       0.325684
 
         """
+        import numpy as np
         import pandas as pd
         from termcolor import colored
-
+        
         print( colored("\nStart der Relevanzbestimmung:", "green") )
-
         relevance_of_feature = pd.DataFrame( columns = ['Koeffizienten'] )
         # Dies wird zurückgegeben und soll die Relevanz der Features sein
-
-        # Soll den START der Schleife markieren
+        
+        if ((len(classification.columns)) == 2):
+            method = "concordance index"
+        
         sl = 0 # Schleifen-läufer
-        while (sl < len(feature_set)):
-            # Die while-Schleife ist für die Berrechnung jeder Koorelation aus
-            # der Menge von Feature zu den Endpunkten
+        while (sl < len(feature_set.columns)):
+            # Die while-Schleife ist für die Berrechnung jeder Koorelation
+            # aus der Menge von Feature zu den Endpunkten
             # print(sl) /ist nur zur Hilfe bei entstandenen Fehlern
-            input_correl = MRMR.correl(feature_set[sl],
+            input_correl = MRMR.correl(feature_set.iloc[:,sl],
                                        classification,
                                        method
                                        ) # Bestimmung einer Korrelationen
-
-            relevance_of_feature = relevance_of_feature.append(dict(zip(
-                                        relevance_of_feature.columns,
-                                        input_correl ) ),
-                                        ignore_index=True)
-
+            
+            relevance_of_feature = relevance_of_feature.append(
+                {'Koeffizienten': input_correl},
+                ignore_index=True)
+            
             sl = sl + 1
+        
         print( colored("\nEnde der Relevanzbestimmung\n", "green") )
         return relevance_of_feature
 
@@ -281,14 +287,15 @@ class MRMR:
         print( colored("\nStart der Redudanzbestimmung:", "green") )
         redundancy_matrix = np.empty( [len(feature_set), len(feature_set)] )
         sl = 0 # Betrachtung der einzelnen Spalten
-        while (sl < len(feature_set)):
+        while (sl < len(feature_set.columns)):
+            
             zl = 0 # Betrachtung der einzelnen Zeilen
-            while (zl < len(feature_set)):
-                input_correl = MRMR.correl(feature_set[zl],
-                                           feature_set[sl],
+            while (zl < len(feature_set.columns)):
+                input_correl = MRMR.correl(feature_set.iloc[:,sl],
+                                           feature_set.iloc[:,zl],
                                            method
                                            )
-                redundancy_matrix[zl][sl] = input_correl[0]
+                redundancy_matrix[zl][sl] = input_correl
                 zl = zl +1
             sl = sl + 1
 
@@ -341,14 +348,29 @@ class MRMR:
 
         elif(method == "concordance index"):
 
-            from Sksurv.metrics import concordance_index_censored
+            from sksurv.metrics import concordance_index_censored as cindex
             from sksurv.linear_model import CoxPHSurvivalAnalysis
-            estimator = CoxPHSurvivalAnalysis()
-            prediction = estimator.predict(setX)
-            correlation = concordance_index_censored(setY[0],
-                                                     setY[1],
-                                                     prediction)
-            correlation[0]
+
+            status = (setY.iloc[:,0])
+            #print(status)
+            status = 1 == status
+            time = setY.iloc[:,1]
+            
+            #print(status)
+            #print(time)
+            
+            cindex_tmp = cindex(status,
+                                time,
+                                setX)
+            
+            cindex_tmp = max(cindex_tmp[0],
+                             np.maximum( cindex_tmp[0],
+                                         1 - cindex_tmp[0] )
+                             )
+            
+            #print(cindex_tmp)
+            correlation = cindex_tmp
+            return correlation
 
         elif(method == "carmer"):
 
@@ -357,4 +379,4 @@ class MRMR:
                   "fertig, gilt noch zu bearbeiten\n")
             correlation = "Fehler"
 
-        return np.abs(correlation)
+        return np.abs(correlation[0])
