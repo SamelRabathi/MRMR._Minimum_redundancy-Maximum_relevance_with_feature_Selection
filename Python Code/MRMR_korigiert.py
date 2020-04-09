@@ -6,11 +6,14 @@
 #
 #@author: samelrabathi
 #"""
+import numpy as np
+import pandas as pd
+import scipy.stats as scipy
+from sksurv.metrics import concordance_index_censored as cindex
+from termcolor import colored
 
-class MRMR:
-
-    import MRMR_korigiert as MRMR
-    
+class Mrmr:
+    #import MRMR_korigiert as MRMR
     considered_features = []
     
     def __init__(self,
@@ -34,11 +37,9 @@ class MRMR:
             functions return objects.
 
         Examples:
-
             >>> Datenbeispiel = MRMR(SetX, SetY, "kendall")
                 # SetX and SetY stand only for representation of this.
             >>>
-
         """
         self.SetX = feature_set
         self.SetY = classifikation
@@ -46,13 +47,13 @@ class MRMR:
 
 
     def starten(self):
-        from termcolor import colored
-
+        # from termcolor import colored
         print( colored("Die Feature Menge:", "magenta") )
         print(self.SetX)
         print( colored("Die klassifizierende Menge:", "magenta") )
         print(self.SetY)
-        result = MRMR.calculation( self.SetX, self.SetY, self.method )
+        
+        result = Mrmr.calculation( self.SetX, self.SetY, self.method )
         return result
 
 
@@ -97,36 +98,35 @@ class MRMR:
             [0.8978872704229619, 0.28335676376630603]
 
         """
-        import numpy as np
-        import pandas as pd
-        from termcolor import colored
-
+        # import numpy as np
+        # import pandas as pd
+        # from termcolor import colored
+        
         print( colored("\n\Beginn der calculation\n", "cyan") )
-
-        Relevance = MRMR.max_rel_calc(SetX, SetY, method)
-        Redundancy = MRMR.min_red_calc(SetX, method)
+        
+        Relevance = Mrmr.max_rel_calc(SetX, SetY, method)
+        Redundancy = Mrmr.min_red_calc(SetX, method)
         mrmr_featid = []# container for feature id's
         mrmr_scores = [] # container for scores according to `mrmr_features`
         mrmr_featnames = [] # container for names
         feat_names = list(SetX)
         feat_id = []
-        l = 0
-        while(l < len(feat_names)):
-            feat_id.append(l+1)
-            l = l + 1
-
-
+        
         print( colored("\nRelevanz: ", "magenta") )
         print(Relevance)
         print( colored("\nRedundanz: ", "magenta") )
         print(Redundancy)
         
-        idmax = Relevance['Koeffizienten'].idxmax()
+        filler = 0
+        while (filler < len(feat_names)):
+            feat_id.append(filler + 1)
+            filler = filler + 1
+        # soll eine künstlich erstellte id darstellen
         
+        idmax = Relevance['Koeffizienten'].idxmax()
         score_tmp = Relevance.iloc[idmax][0] # Übernahme des Scores
         names_tmp = feat_names.pop(idmax) # Übernahme des Names
-        id_tmp = feat_id.pop(idmax) # Übernahme des id's
-        rel_tmp = Relevance
+        id_tmp = feat_id[idmax] # Übernahme des id's
 
         Relevance = Relevance.drop([idmax][0])
 
@@ -134,20 +134,25 @@ class MRMR:
         mrmr_featnames.append(names_tmp) # Einschreiben des Names
         mrmr_featid.append(id_tmp) # Einschreiben der ids
 
-        while (score_tmp > 0): # Überprüfung auf den Score
+        z = 0
+        while (Relevance.empty == False and score_tmp > 0):
+                # Überprüfung ob Menge noch Elemnte hat und der Score stimmt
+            z = z + 1
             idmax = Relevance['Koeffizienten'].idxmax()
             list_of_redundanz = [] # Hier sollen die Redudanz-Werte stehen
-            sl = 0 # Läufer für das Abarebiten der Spalten einer Zeile
+            sl = 0 # Läufer für das Abarbeiten der Spalten einer Zeile
             while (sl < len(mrmr_scores)):
-                list_of_redundanz.append(Redundancy[idmax][mrmr_featid[sl]-1])
+                list_of_redundanz.append(Redundancy[idmax][mrmr_featid[sl]])
                 sl = sl + 1
                  # Vielleicht etwas unsschön gemacht, um eine Liste an Werten
                  # zu erstellen, welches über die Redundanz aussagt, eine
                  # andere Art der gezielten Suche müsste ich mir noch finden
 
             redund_tmp = list_of_redundanz[np.argmax(list_of_redundanz)]
-
-            score_tmp = Relevance.iloc[idmax][0] - redund_tmp
+                # enthaelt den höchsten Wert der Redundanz
+            score_tmp = Relevance.loc[idmax][0] - redund_tmp
+                # ist der berechnete Score
+            
             # print("Relevance.iloc[idmax][0]: {:}".format(
             #                                       Relevance.iloc[idmax][0]))
             # print("redund_tmp: {:}".format(redund_tmp))
@@ -157,23 +162,25 @@ class MRMR:
             if (score_tmp > 0):
                 # Das Einfügen wird nur dann getätigt, wenn auch tatsächlich
                 # positiv sind
-                id_tmp = feat_id.pop(idmax)
-                names_tmp = feat_names.pop(idmax)
-                Relevance = Relevance.drop(idmax)
+                names_tmp = feat_names.pop((idmax))# - len(mrmr_scores)))
+                id_tmp = feat_id[idmax]
+                
+                Relevance = Relevance.drop([idmax][0])
 
-                mrmr_scores.append(score_tmp)
-                mrmr_featid.append(id_tmp)
-                mrmr_featnames.append(names_tmp)
-
+                mrmr_scores.append(score_tmp) # Einschreiben des Scores
+                mrmr_featid.append(id_tmp) # Einschreiben der id
+                mrmr_featnames.append(names_tmp) # Einschreiben des Namens
+            
         filtered_feature = pd.DataFrame( columns = ['Feature_Id',
                                                     'Name',
                                                     'Score'] )
+        
         filtered_feature['Feature_Id'] = mrmr_featid
         filtered_feature['Name'] = mrmr_featnames
         filtered_feature['Score'] = mrmr_scores
 
         print( colored("\n\n\Ende der calculation\n", "cyan") )
-        return filtered_feature, mrmr_scores, mrmr_featid, mrmr_featnames, rel_tmp, Redundancy
+        return filtered_feature, mrmr_scores, mrmr_featid, mrmr_featnames
 
 
     def max_rel_calc(feature_set,
@@ -219,8 +226,8 @@ class MRMR:
             4       0.325684
 
         """
-        import pandas as pd
-        from termcolor import colored
+        # import pandas as pd
+        # from termcolor import colored
         
         print( colored("\nStart der Relevanzbestimmung:", "green") )
         relevance_of_feature = pd.DataFrame( columns = ['Koeffizienten'] )
@@ -234,7 +241,7 @@ class MRMR:
             # Die while-Schleife ist für die Berrechnung jeder Koorelation
             # aus der Menge von Feature zu den Endpunkten
             # print(sl) /ist nur zur Hilfe bei entstandenen Fehlern
-            input_correl = MRMR.correl(feature_set.iloc[:,sl],
+            input_correl = Mrmr.correl(feature_set.iloc[:,sl],
                                        classification,
                                        method
                                        ) # Bestimmung einer Korrelationen
@@ -289,8 +296,8 @@ class MRMR:
                         1.        ]])
 
         """
-        import numpy as np
-        from termcolor import colored
+        # import numpy as np
+        # from termcolor import colored
         print( colored("\nStart der Redudanzbestimmung:", "green") )
         redundancy_matrix = np.empty( [len(feature_set.columns),
                                        len(feature_set.columns)] )
@@ -302,7 +309,7 @@ class MRMR:
                 if(sl == zl):
                     input_correl = 1
                 else:
-                    input_correl = MRMR.correl(feature_set.iloc[:,sl],
+                    input_correl = Mrmr.correl(feature_set.iloc[:,sl],
                                                feature_set.iloc[:,zl],
                                                method
                                                )
@@ -343,54 +350,45 @@ class MRMR:
             0.584747
 
         """
-        import numpy as np
-
+        # import numpy as np
+        
         correlation = 0
         if (method == "pearson"):
-
-            import scipy.stats as scipy
+            # import scipy.stats as scipy
             correlation = scipy.pearsonr(setX, setY)
-
+            correlation = correlation[0]
+        
         elif (method == "spearman"):
-
-            import scipy.stats as scipy
+            # import scipy.stats as scipy
             correlation = scipy.spearmanr(setX, setY)
-
+            correlation = correlation[0]
+        
         elif (method == "kendall"):
-
-            import scipy.stats as scipy
+            # import scipy.stats as scipy
             correlation = scipy.kendalltau(setX, setY)
-
+            correlation = correlation[0]
+        
         elif(method == "concordance index"):
-
-            from sksurv.metrics import concordance_index_censored as cindex
-
+            # from sksurv.metrics import concordance_index_censored as cindex
+            
             status = (setY.iloc[:,0])
-            #print(status)
             status = 1 == status
             time = setY.iloc[:,1]
-            
-            #print(status)
-            #print(time)
             
             cindex_tmp = cindex(status,
                                 time,
                                 setX)
             
-            cindex_tmp = max(cindex_tmp[0],
+            correlation = max(cindex_tmp[0],
                              np.maximum( cindex_tmp[0],
                                          1 - cindex_tmp[0] )
                              )
-            
-            #print(cindex_tmp)
-            correlation = cindex_tmp
-            return correlation
-
+        
         elif(method == "carmer"):
-
+        
             # Code kommt noch
             print("\nDie Berechnung über den Carmer's V ist noch nicht " +
                   "fertig, gilt noch zu bearbeiten\n")
             correlation = "Fehler"
-
-        return np.abs(correlation[0])
+        
+        return np.abs(correlation)
